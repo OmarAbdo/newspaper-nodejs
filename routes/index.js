@@ -1,6 +1,8 @@
 import express from 'express';
 import userController from '../controllers/user/user';
 import experimentalController from '../controllers/experimental';
+import authenticationController from '../controllers/auth/authentication';
+
 
 const router = express.Router();
 
@@ -11,6 +13,9 @@ router.put('/api/v1/todos/:id', userController.updateTodo);
 router.delete('/api/v1/todos/:id', userController.deleteTodo);
 
 router.get('/api/v1/test/authenticate', experimentalController.createJWT);
+
+
+router.post('/api/v1/authentication/signUp', authenticationController.validate('signUp'), authenticationController.signUp);
 
 
 export default router;

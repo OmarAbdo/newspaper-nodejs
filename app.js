@@ -1,10 +1,10 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import config from './util/config';
 
+
+import config from './util/config';
 import router from './routes/index';
 import sequelize from './util/database';
-import User from './models/user';
 
 const app = express();
 
@@ -14,7 +14,9 @@ app.use(router);
 
 
 sequelize
-  .sync() 
+  .sync({
+    //force: true,
+  }) 
   .then(cart => {
     console.log(`Your port is ${config.PORT}`); 
     app.listen(parseInt(config.PORT));
