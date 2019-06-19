@@ -1,6 +1,7 @@
 import User from '../../models/user';
 import { check, validationResult } from 'express-validator/check';
 import allCountries from '../../util/countries';
+import bcrypt from 'bcrypt';
 
 class AuthenticationController {
     signUp(req, res) {
@@ -9,10 +10,15 @@ class AuthenticationController {
         if (!errors.isEmpty()) {
             return res.status(422).json({ errors: errors.array() });
         }
-        User.build({ ...req.body})
-        .save()
-            .then(result => res.status(200).json({success: 'User Created Successfully',}))
-            .catch(error => res.status(422).json({ error: error }))
+        //create jwt here
+      
+        bcrypt.hash(req.body.password, 10, function(err, hash) {
+            User.build({ ...req.body, password: hash})            
+            .save()
+                .then(result => res.status(200).json({success: 'User Created Successfully',}))
+                .catch(error => res.status(422).json({ error: error }))
+        });
+       
     }
 
     validate(method) {
@@ -42,6 +48,7 @@ class AuthenticationController {
                             if (value == req.body.email) {
                                 throw new Error('Passwords can\'t be the same as email ');
                             } else {
+                                //hash password here
                                 return value;
                             }
                         })
