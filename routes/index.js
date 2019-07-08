@@ -16,7 +16,6 @@ router.delete('/api/v1/todos/:id', authenticationController.checkToken, userCont
 
 //authentication routes
 router.post('/api/v1/authentication/signup', authenticationController.validate('signUp'), authenticationController.signUp);
-// router.post('/api/v1/authentication/login',  authenticationController.logIn);
 router.post('/api/v1/authentication/login', authenticationController.validate('logIn'), authenticationController.logIn);
 // forgot password route
 
