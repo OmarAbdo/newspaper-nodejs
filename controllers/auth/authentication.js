@@ -14,7 +14,9 @@ import config from '../../util/config';
  * @method logIn                - for user login 
  * @method validate             - validates both login and registration forms' data
  * @method passwordResetToken   - sending email with a reset token to a user to reset his password
+ * @method passwordResetAttempt - checking if the token is still valid before letting the user submit any new passwords
  * @method passwordResetForm    - accepting the new user password if he followed the link sent to his email address 
+ * @method emailActivation      - sends new users activation links to their email addresses
  * @method checkToken           - to validate that users are authentic and can be allowed to visit the desired routes 
  * 
  * @author Omar Abdo
@@ -35,9 +37,9 @@ class AuthenticationController {
                         token: jwt.sign({ userId: result.id }, config.privateKey, { expiresIn: 60 * 60 }),
                         success: 'User Created Successfully',
                         authenticated: true,
-                    })
+                    });
                 })
-                .catch(error => res.status(422).json({ error: error }))
+                .catch(error => res.status(422).json({ error: error }));
         });
     }
 
@@ -81,7 +83,7 @@ class AuthenticationController {
                             if (user) {
                                 return Promise.reject('E-mail already exists');
                             }
-                        })
+                        });
                     }),
                     check('password', 'password must be 8+ characters contain at least a number, a capital letter and a special character')
                         .isLength({ min: 8 })
@@ -119,7 +121,7 @@ class AuthenticationController {
                             return value;
                         }
                     })
-                ]
+                ];
             }
             case 'logIn': {
                 return [
@@ -136,6 +138,33 @@ class AuthenticationController {
                         .matches(/^.*(?=.{8,})((?=.*[!@#$%^&*()\-_=+{};:,<.>]){1})(?=.*\d)((?=.*[a-z]){1})((?=.*[A-Z]){1}).*$/),
                 ];
             }
+            case 'passwordResetToken': {
+                return [
+                    check('email').isEmail(),
+                ];
+            }
+            case 'passwordReset': {
+                return [
+                    check('password', 'password must be 8+ characters contain at least a number, a capital letter and a special character')
+                        .isLength({ min: 8 })
+                        .custom((value, { req, loc, path }) => {
+                            if (value == req.body.name) {
+                                throw new Error('Passwords can\'t be the same as name ');
+                            } else {
+                                return value;
+                            }
+                        })
+                        .custom((value, { req, loc, path }) => {
+                            if (value == req.body.email) {
+                                throw new Error('Passwords can\'t be the same as email ');
+                            } else {
+                                return value;
+                            }
+                        })
+                        .matches(/^.*(?=.{8,})((?=.*[!@#$%^&*()\-_=+{};:,<.>]){1})(?=.*\d)((?=.*[a-z]){1})((?=.*[A-Z]){1}).*$/),
+                ];
+            }
+
         }
     }
 
@@ -148,16 +177,109 @@ class AuthenticationController {
                 if (err) {
                     res.status(403).json({
                         error: "Please Login again 1",
-                    })
+                    });
                 } else {
                     next();
                 }
-            })
+            });
 
         } else {
-            res.status(403).json({ error: "Please Login again 2" })
+            res.status(403).json({ error: "Please Login again 2" });
         }
     }
+
+    /**
+     * Password Reset Token
+     * @description generate the web token needed to reset the password on user request
+     * 
+     * @todo 3: if so, generate the right token (google how this token gets built)
+     * @todo 4: store the token in the db with an expiry date like one hour (also google that)
+     * @todo 5: finally, build an email template that will contain the token in the form of a link or a button and tell the user it expires fast and send it
+     * 
+     */
+    passwordResetToken(req, res, next) {
+        if (!req.body.email) {
+            res.status(422).json({
+                error: 'Email is not provided',
+            });
+        } else {
+            const userEmail = req.body.email;
+            User.findOne({ where: { email: userEmail } })
+                .then(user => {
+                    if (user) {
+                        //generate token in here, store it the db, and send an email to the user
+                        res.status(200).json({
+                            success: req.body.email,
+                        });
+                    } else {
+                        res.status(422).json({
+                            error: 'This email does not exists. Please sign up first',
+                        });
+                    }
+                })
+                .catch(error => {
+                    res.status(422).json({
+                        error: 'Forbidden Action!',
+                    });
+                });
+           
+        }
+
+    }
+
+    /**
+     * Password Rest Attempt
+     * @description handles how the user should be navigated after he clicks on the token sent to his email
+     * 
+     * @todo 1: extract token from the url get req (how to make it open in my flutter app?)
+     * @todo 2: if token expired or not provided, send error status token already expired, please ask for a new one
+     * @todo 2: otherwise, return 200 success status
+     * 
+     */
+    passwordResetAttempt(req, res, next) {
+
+    }
+
+    /**
+     * passwordReset
+     * @description allow user to update his password
+     * 
+     * @todo 1: let the user enter his new password twice showing him which email(account) he is updating 
+     * @todo 2: on the put request, recheck if token still valid in time, (cuz what if the user left the reset password screen open for 2 hours before submit)
+     * @todo 3: if so, mark it as expired and validate, hash, and update the new password  
+     * @todo 4: otherwise, return error status token already expired, please ask for a new one
+     */
+    passwordReset(req, res, next) {
+
+    }
+
+    /**
+     * emailActivation
+     * @description allow user to update his password - token doesn't expire or expires in a long time like 7 days
+     * 
+     * @events on successful signUp or email update, user request for a resend this method should be called
+     * 
+     * @todo 1: create a token 
+     * @todo 2: store the token in DB 
+     * @todo 3: send it to user email in a message
+     */
+    emailActivationToken(req, res, next) {
+
+    }
+
+    /**
+     * emailActivation
+     * @description allow user to update his password
+     * 
+     * @todo 3: on user click, get the token and check if it still valid
+     * @todo 4: if valid, update the activated field in the user row in the DB to true
+     * @todo 3: otherwise, ask the user to get a new token
+     */
+    emailActivation(req, res, next) {
+
+    }
+
+
 
     /**
      * @todo delete this late
@@ -170,7 +292,7 @@ class AuthenticationController {
             password: '123flutteriscool.com',
             country: 'England',
             birthday: '29/08/1632',
-        })
+        });
     }
 
 }
