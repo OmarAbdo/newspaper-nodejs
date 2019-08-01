@@ -192,10 +192,7 @@ class AuthenticationController {
 
     /**
      * Password Reset Token
-     * @description generate the web token needed to reset the password on user request
-     * 
-     * @todo 5: finally, build an email template that will contain the token in the form of a link or a button and tell the user it expires fast and send it
-     * 
+     * @description generate a password reset token open user request, store it in the DB with expiry time, and send it in an email to the user
      */
     passwordResetToken(req, res, next) {
         if (!req.body.email) {
@@ -214,8 +211,7 @@ class AuthenticationController {
                         });
                         //and send an email to the user
                         let data = {
-                            //to: user.email, 
-                            to: 'me@oabdo.com',
+                            to: user.email, 
                             from: 'omareabdo@gmail.com',
                             template: 'forgot-password-email',
                             subject: 'Password help has arrived!',
