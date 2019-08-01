@@ -15,6 +15,8 @@ const User = sequelize.define('user', {
   password: Sequelize.STRING,
   country: Sequelize.STRING,
   birthday: Sequelize.DATEONLY,  
+  resetToken:Sequelize.STRING,
+  tokenExpiry: Sequelize.DATE,
   createdAt: Sequelize.DATE,
   updatedAt: Sequelize.DATE,
 });

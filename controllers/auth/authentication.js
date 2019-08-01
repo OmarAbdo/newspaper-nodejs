@@ -1,10 +1,12 @@
 import { check, validationResult } from 'express-validator/check';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import hbs from 'nodemailer-express-handlebars';
 
 import User from '../../models/user';
 import allCountries from '../../util/countries';
 import config from '../../util/config';
+import { smtpTransport, handlebarsOptions } from '../../util/email';
 
 /**
  * Authentication Class
@@ -192,8 +194,6 @@ class AuthenticationController {
      * Password Reset Token
      * @description generate the web token needed to reset the password on user request
      * 
-     * @todo 3: if so, generate the right token (google how this token gets built)
-     * @todo 4: store the token in the db with an expiry date like one hour (also google that)
      * @todo 5: finally, build an email template that will contain the token in the form of a link or a button and tell the user it expires fast and send it
      * 
      */
@@ -207,9 +207,38 @@ class AuthenticationController {
             User.findOne({ where: { email: userEmail } })
                 .then(user => {
                     if (user) {
-                        //generate token in here, store it the db, and send an email to the user
-                        res.status(200).json({
-                            success: req.body.email,
+                        let token = '123'; //generate a better token later
+                        user.update({
+                            resetToken: token,
+                            tokenExpiry: Date.now() + 86400000
+                        });
+                        //and send an email to the user
+                        let data = {
+                            //to: user.email, 
+                            to: 'me@oabdo.com',
+                            from: 'omareabdo@gmail.com',
+                            template: 'forgot-password-email',
+                            subject: 'Password help has arrived!',
+                            context: {
+                                url: 'http://localhost:5000/authentication/reset_password?token=' + token, // the url to visit the reset password page
+                                name: user.name
+                            }
+                        };
+
+                        smtpTransport.use('compile', hbs(handlebarsOptions));
+                        smtpTransport.sendMail(data, function (err) {
+                            if (!err) {
+                                res.status(200).json({
+                                    success: req.body.email,
+                                    token: token,
+                                    message: 'Kindly check your email for further instructions'
+                                });
+                            } else {
+                                console.log(err);
+                                res.status(422).json({
+                                    error: err,
+                                });
+                            }
                         });
                     } else {
                         res.status(422).json({
@@ -222,9 +251,7 @@ class AuthenticationController {
                         error: 'Forbidden Action!',
                     });
                 });
-           
         }
-
     }
 
     /**
